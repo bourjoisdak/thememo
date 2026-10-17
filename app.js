@@ -118,7 +118,8 @@ function normalize(m) {
 function newSticker(id, i = 0) {
   return { id, x: clamp(86 - i * 16 + (Math.random() * 8 - 4), 8, 92), y: clamp(10 + i * 6 + Math.random() * 6, 4, 90), r: Math.round(Math.random() * 16 - 8) };
 }
-const stickerFree = (st, i, removable) => `<div class="stk-free" data-si="${i}" style="left:${st.x}%;top:${st.y}%;--r:${st.r || 0}deg;--k:${stickerScale(st.id)}">${stickerSVG(st.id)}${removable ? `<button class="stk-rm" data-unstick="${i}" title="떼기">✕</button>` : ''}</div>`;
+const STICKER_MIN = 0.4, STICKER_MAX = 3;
+const stickerFree = (st, i, removable) => `<div class="stk-free" data-si="${i}" style="left:${st.x}%;top:${st.y}%;--r:${st.r || 0}deg;--k:${stickerScale(st.id)};--s:${st.s || 1}">${stickerSVG(st.id)}${removable ? `<button class="stk-rm" data-unstick="${i}" title="떼기">✕</button>` : ''}<span class="stk-handle" title="끌어서 크기 조절"></span></div>`;
 
 // ───────── 사진 저장소: 용량이 큰 사진은 localStorage 대신 IndexedDB에 ─────────
 const photoDB = (() => {
@@ -581,7 +582,7 @@ function bind() {
   // 내지: 체크는 바로, 나머지는 편집기 열기
   $('#grid').addEventListener('click', e => {
     const card = e.target.closest('.sheet'); if (!card) return;
-    if (Date.now() - lastDragEnd < 300) return; // 스티커를 옮긴 직후의 클릭은 무시
+    if (Date.now() - lastDragEnd < 300 || e.target.closest('.stk-free')) return; // 스티커를 고르거나 옮긴 클릭은 편집기를 열지 않음
     const m = memos.find(x => x.id === card.dataset.id);
     const t = e.target.closest('[data-toggle]');
     const d = e.target.closest('[data-day]');
@@ -723,22 +724,51 @@ function bind() {
   });
 }
 
-// ───────── 스티커 끌어 옮기기 (메모 카드·편집기 공통) ─────────
+// ───────── 스티커 선택 · 옮기기 · 크기 조절 (메모 카드·편집기 공통) ─────────
+// 스티커를 누르면 선택되고, 끌면 옮겨지고, 모서리 손잡이를 끌거나 휠을 돌리면 크기가 바뀐다
 let drag = null, lastDragEnd = 0;
+const stickerOf = el => {
+  const memoId = el.parentElement.closest('.sheet')?.dataset.id || editingId;
+  const m = memos.find(x => x.id === memoId);
+  return { m, st: m?.stickers[+el.dataset.si] };
+};
+function selectSticker(el) {
+  document.querySelectorAll('.stk-free.sel').forEach(x => x !== el && x.classList.remove('sel'));
+  el?.classList.add('sel');
+}
+function setStickerScale(el, scale) {
+  const v = Math.round(clamp(scale, STICKER_MIN, STICKER_MAX) * 100) / 100;
+  el.style.setProperty('--s', v);
+  return v;
+}
+
 document.addEventListener('pointerdown', e => {
   const el = e.target.closest('.stk-free');
-  if (!el || e.target.closest('.stk-rm') || e.button > 0) return;
+  if (!el) { if (!e.target.closest('#emojiPop')) selectSticker(null); return; }
+  if (e.target.closest('.stk-rm') || e.button > 0) return;
+  selectSticker(el);
   const layer = el.parentElement;
-  const memoId = layer.closest('.sheet')?.dataset.id || editingId;
-  drag = { el, layer, memoId, i: +el.dataset.si, sx: e.clientX, sy: e.clientY, moved: false };
+  const base = { el, layer, sx: e.clientX, sy: e.clientY, moved: false };
+  if (e.target.closest('.stk-handle')) {
+    // 크기 조절: 스티커 중심에서 포인터까지 거리 비율만큼 키우고 줄인다
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    drag = { ...base, mode: 'resize', cx, cy, d0: Math.hypot(e.clientX - cx, e.clientY - cy) || 1, s0: +getComputedStyle(el).getPropertyValue('--s') || 1 };
+  } else {
+    drag = { ...base, mode: 'move' };
+  }
   el.setPointerCapture(e.pointerId);
   e.preventDefault();
 });
 document.addEventListener('pointermove', e => {
   if (!drag) return;
-  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return;
   drag.moved = true;
   drag.el.classList.add('dragging');
+  if (drag.mode === 'resize') {
+    drag.s = setStickerScale(drag.el, drag.s0 * Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) / drag.d0);
+    return;
+  }
   const r = drag.layer.getBoundingClientRect();
   drag.x = clamp((e.clientX - r.left) / r.width * 100);
   drag.y = clamp((e.clientY - r.top) / r.height * 100);
@@ -751,12 +781,25 @@ document.addEventListener('pointerup', () => {
   d.el.classList.remove('dragging');
   if (!d.moved) return;
   lastDragEnd = Date.now();
-  const m = memos.find(x => x.id === d.memoId), st = m?.stickers[d.i];
+  const { m, st } = stickerOf(d.el);
   if (!st) return;
-  st.x = Math.round(d.x * 10) / 10;
-  st.y = Math.round(d.y * 10) / 10;
+  if (d.mode === 'resize') st.s = d.s;
+  else { st.x = Math.round(d.x * 10) / 10; st.y = Math.round(d.y * 10) / 10; }
+  m.updated = Date.now();
   save();
 });
+// 선택한 스티커 위에서 휠을 돌려도 크기 조절
+let wheelSave = 0;
+document.addEventListener('wheel', e => {
+  const el = e.target.closest('.stk-free.sel');
+  if (!el) return;
+  e.preventDefault();
+  const { st } = stickerOf(el);
+  if (!st) return;
+  st.s = setStickerScale(el, (st.s || 1) * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+  clearTimeout(wheelSave);
+  wheelSave = setTimeout(save, 250);
+}, { passive: false });
 
 // 사진 파일을 끌어다 놓을 수 있는 영역
 function dropZone(el, onFiles) {

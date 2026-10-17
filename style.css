@@ -307,7 +307,7 @@ select option { background: var(--paper); color: var(--ink); }
 .stk-layer { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
 .stk-free {
   position: absolute;
-  width: calc(var(--stk-size, 70px) * var(--k, 1));
+  width: calc(var(--stk-size, 70px) * var(--k, 1) * var(--s, 1));
   transform: translate(-50%, -50%) rotate(var(--r, 0deg));
   pointer-events: auto; cursor: grab; touch-action: none; user-select: none;
 }
@@ -319,7 +319,18 @@ select option { background: var(--paper); color: var(--ink); }
   background: var(--ink); color: var(--paper); font-size: 10px; line-height: 1;
   opacity: 0; transition: opacity .15s;
 }
-.stk-free:hover .stk-rm, .stk-free:focus-within .stk-rm { opacity: 1; }
+.stk-free:hover .stk-rm, .stk-free:focus-within .stk-rm, .stk-free.sel .stk-rm { opacity: 1; }
+
+/* 선택된 스티커: 점선 테두리 + 모서리 크기 조절 손잡이 */
+.stk-free.sel { outline: 1.5px dashed var(--chef); outline-offset: 2px; border-radius: 6px; z-index: 4; }
+.stk-handle {
+  position: absolute; right: -8px; bottom: -8px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--chef); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+  cursor: nwse-resize; touch-action: none;
+  display: none;
+}
+.stk-free.sel .stk-handle { display: block; }
 
 /* 사진 */
 .ph { position: relative; margin: 0; overflow: hidden; border-radius: 3px; background: var(--rule-soft); }
