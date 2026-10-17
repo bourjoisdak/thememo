@@ -487,8 +487,11 @@ select option { background: var(--paper); color: var(--ink); }
 .emoji-set button { background: none; border: 0; font-size: 20px; padding: 4px 0; }
 .emoji-set button:hover { background: var(--bg); }
 
-/* 스티커: 배경 없는 SVG */
+/* 스티커: 배경 없는 SVG, 손그림 효과 (색칠 층 + 연필 윤곽선 층) */
 .stk { display: block; overflow: visible; }
+.stk .ol * { fill: none; stroke: #3B3B3B; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.stk .ol text { display: none; } /* 글자는 윤곽선 없이 크레파스 질감만: 작아져도 읽히게 */
+.stk .ol [opacity] { stroke: none; } /* 볼터치·하이라이트는 선 없이 */
 
 @media (max-width: 1000px) {
   .workspace { grid-template-columns: 1fr; gap: 32px; height: auto; }

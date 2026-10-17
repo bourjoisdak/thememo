@@ -180,9 +180,35 @@ const LEGACY_STICKERS = {
   study: 'book', hmm: 'meh', idk: 'meh', nope: 'cross', tired: 'sleepy',
 };
 
+// ───────── 손그림 효과 ─────────
+// 칠: 가장자리를 흔들고 크레파스처럼 거칠게 / 선: 흔들리는 연필 윤곽선
+// 같은 필터를 모든 스티커가 함께 쓰도록 문서에 한 번만 넣는다 (모양마다 3가지 중 하나)
+(function injectHandDrawnFilters() {
+  const one = i => `
+    <filter id="hd-fill-${i}" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="${3 + i * 5}" result="wob"/>
+      <feDisplacementMap in="SourceGraphic" in2="wob" scale="5" xChannelSelector="R" yChannelSelector="G" result="shape"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed="${11 + i}" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.3 0 0 0 1.45" result="mask"/>
+      <feComposite in="shape" in2="mask" operator="in"/>
+    </filter>
+    <filter id="hd-line-${i}" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="${8 + i * 7}" result="wob"/>
+      <feDisplacementMap in="SourceGraphic" in2="wob" scale="3.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>`;
+  document.body.insertAdjacentHTML('afterbegin',
+    `<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>${[0, 1, 2].map(one).join('')}</defs></svg>`);
+})();
+const variantOf = id => [...id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 3;
+
 const stickerScale = id => STICKERS.find(s => s.id === id)?.k ?? 1;
 function stickerSVG(id) {
   const art = STICKER_ART[id];
   if (!art) return '';
-  return `<svg class="stk" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${art[1]}">${art[3]}</svg>`;
+  const v = variantOf(id);
+  // 색칠 층을 살짝 어긋나게 두고, 그 위에 연필 윤곽선 층을 겹친다
+  return `<svg class="stk" viewBox="-6 -6 112 112" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${art[1]}">
+    <g class="fl" filter="url(#hd-fill-${v})" transform="translate(1.4 1.8)">${art[3]}</g>
+    <g class="ol" filter="url(#hd-line-${v})">${art[3]}</g>
+  </svg>`;
 }
