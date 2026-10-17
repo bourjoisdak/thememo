@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memo Cabinet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;700;800&family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600&family=Gowun+Batang&family=Nanum+Pen+Script&family=Gaegu:wght@400;700&family=Gamja+Flower&family=Hi+Melody&family=Nanum+Gothic+Coding&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+
+    <!-- 머리말 -->
+    <header class="masthead">
+      <div class="mono edition">EDITION 01:<br>MEMO ARCHIVE</div>
+      <div class="masthead-title">
+        <h1>the memo cabinet</h1>
+        <p class="mono caption">CURATED BY ©닭사장</p>
+      </div>
+      <div class="mono masthead-links">
+        <button class="mono-link" id="settingsBtn">SETTINGS</button>
+        <button class="mono-link" id="themeBtn">DARK / LIGHT</button>
+      </div>
+    </header>
+
+    <!-- 빠른 입력: 플래너 상단 띠 -->
+    <section class="capture">
+      <div class="capture-date">
+        <p class="bar-label mono">TODAY'S DATE</p>
+        <p class="hand big" id="today"></p>
+        <p class="mono small" id="weekday"></p>
+      </div>
+      <div class="capture-note">
+        <p class="bar-label mono">QUICK NOTE — 아무거나 적으세요</p>
+        <textarea id="quick" class="hand ruled" rows="3" placeholder="내일 3시 거래처 미팅 자료 준비&#10;- 우유  - 계란  - 휴지&#10;매일 물 2L 마시기"></textarea>
+        <div class="capture-bar">
+          <div class="guess mono" id="guess"></div>
+          <div class="capture-actions">
+            <div class="pending" id="pendingStickers"></div>
+            <button class="icon-btn" id="quickEmoji" title="스티커 · 이모지">✱ 스티커</button>
+            <button class="btn" id="quickSave">FILE IT <kbd>Ctrl ↵</kbd></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 서류함 -->
+    <section class="cabinet">
+      <nav class="folder-tabs" id="folderTabs"></nav>
+      <div class="folder">
+        <nav class="side-tabs" id="typeTabs"></nav>
+        <div class="folder-body">
+          <div class="cover">
+            <div class="cover-title">
+              <p class="mono" id="coverEdition"></p>
+              <h2 id="coverTitle"></h2>
+            </div>
+            <div class="info mono">
+              <div id="coverRows" class="rows"></div>
+              <div><span>SEARCH:</span><input id="search" type="search" placeholder="키워드"></div>
+            </div>
+          </div>
+          <div class="sheets" id="grid"></div>
+          <p class="empty hand" id="empty" hidden>이 서류철은 아직 비어 있어요.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 편집: 플래너 내지 -->
+  <div class="overlay" id="overlay" hidden>
+    <article class="editor sheet-paper" id="editor">
+      <span class="binder l"></span><span class="binder r"></span>
+      <header class="ed-head">
+        <h3 id="edHeading"></h3>
+        <button class="icon-btn" id="edClose" title="닫기">✕</button>
+      </header>
+
+      <div class="ed-meta">
+        <div>
+          <p class="bar-label mono">DATE</p>
+          <p class="hand mid" id="edDate"></p>
+        </div>
+        <div>
+          <p class="bar-label mono">FILED UNDER</p>
+          <div class="ed-selects">
+            <select id="edType" class="mono"></select>
+            <select id="edCat" class="mono"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="font-bar mono">
+        <select id="edFont" title="서체"></select>
+        <div class="size">
+          <button class="icon-btn" data-size="-1" title="작게">A−</button>
+          <span id="edSizeVal">20</span>
+          <button class="icon-btn" data-size="1" title="크게">A+</button>
+        </div>
+        <button class="icon-btn" id="edEmoji" title="스티커 · 이모지">✱ 스티커</button>
+      </div>
+
+      <div class="ed-body" id="edBody">
+        <div class="ed-stickers" id="edStickers"></div>
+        <input class="ed-title" id="edTitle" placeholder="제목">
+        <div id="edContent"></div>
+      </div>
+
+      <footer class="ed-foot">
+        <button class="mono-link" id="edDelete">DELETE</button>
+        <button class="btn" id="edDone">DONE</button>
+      </footer>
+    </article>
+  </div>
+
+  <!-- 설정 -->
+  <div class="overlay center" id="settings" hidden>
+    <article class="editor sheet-paper small">
+      <span class="binder l"></span><span class="binder r"></span>
+      <header class="ed-head">
+        <h3><b>Settings</b><span>기본 글꼴</span></h3>
+        <button class="icon-btn" data-close="settings">✕</button>
+      </header>
+      <div class="settings-body">
+        <label class="mono">FONT <select id="setFont"></select></label>
+        <label class="mono">SIZE <input type="range" id="setSize" min="14" max="30" step="1"> <span id="setSizeVal"></span></label>
+        <p class="preview ruled" id="setPreview">다람쥐 헌 쳇바퀴에 타고파 0123</p>
+        <button class="mono-link" id="exportBtn">EXPORT BACKUP (.json)</button>
+        <label class="mono-link">IMPORT BACKUP <input type="file" id="importFile" accept=".json" hidden></label>
+      </div>
+    </article>
+  </div>
+
+  <!-- 스티커/이모지 팝오버 -->
+  <div class="emoji-pop" id="emojiPop" hidden></div>
+
+  <script src="stickers.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
