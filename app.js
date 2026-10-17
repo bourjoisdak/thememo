@@ -102,13 +102,15 @@ function lastDays(n) {
 const clamp = (v, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 
 // 예전 형식(스티커 id 문자열, 일기 mood)을 위치가 있는 스티커로 바꾼다
+const fixStickerId = id => (isSticker(id) ? id : LEGACY_STICKERS[id]);
 function normalize(m) {
   m = { stickers: [], photos: [], ...m };
   m.stickers = m.stickers.filter(Boolean)
-    .map((st, i) => typeof st === 'string' ? newSticker(st, i) : st)
+    .map((st, i) => typeof st === 'string' ? newSticker(fixStickerId(st), i) : { ...st, id: fixStickerId(st.id) })
     .filter(st => isSticker(st.id));
   if (m.mood) {
-    if (isSticker(m.mood)) m.stickers.unshift({ ...newSticker(m.mood, 0), mood: true });
+    const mood = fixStickerId(m.mood);
+    if (mood) m.stickers.unshift({ ...newSticker(mood, 0), mood: true });
     m.mood = null;
   }
   return m;
@@ -116,7 +118,7 @@ function normalize(m) {
 function newSticker(id, i = 0) {
   return { id, x: clamp(86 - i * 16 + (Math.random() * 8 - 4), 8, 92), y: clamp(10 + i * 6 + Math.random() * 6, 4, 90), r: Math.round(Math.random() * 16 - 8) };
 }
-const stickerFree = (st, i, removable) => `<div class="stk-free" data-si="${i}" style="left:${st.x}%;top:${st.y}%;--r:${st.r || 0}deg">${stickerSVG(st.id)}${removable ? `<button class="stk-rm" data-unstick="${i}" title="떼기">✕</button>` : ''}</div>`;
+const stickerFree = (st, i, removable) => `<div class="stk-free" data-si="${i}" style="left:${st.x}%;top:${st.y}%;--r:${st.r || 0}deg;--k:${stickerScale(st.id)}">${stickerSVG(st.id)}${removable ? `<button class="stk-rm" data-unstick="${i}" title="떼기">✕</button>` : ''}</div>`;
 
 // ───────── 사진 저장소: 용량이 큰 사진은 localStorage 대신 IndexedDB에 ─────────
 const photoDB = (() => {
@@ -237,7 +239,7 @@ function parseQuick(text, type, cat) {
     if (type === 'diary') m.title = m.title || fmtHand(Date.now());
   }
   // 일기는 첫 스티커가 오늘의 기분
-  m.stickers = pendingStickers.map((id, i) => ({ ...newSticker(id, i), ...(type === 'diary' && i === 0 ? { mood: true } : {}) }));
+  m.stickers = pendingStickers.map((id, i) => ({ ...newSticker(id, i), ...(type === 'diary' && i === 0 && MOOD_STICKERS.includes(id) ? { mood: true } : {}) }));
   return m;
 }
 
@@ -457,7 +459,7 @@ function renderEditorContent(m) {
   } else if (m.type === 'diary') {
     box.innerHTML = `
       <p class="bar-label mono">TODAY'S MOOD</p>
-      <div class="mood-pick">${STICKERS.map(s => `<button data-mood="${s.id}" class="${m.stickers.some(st => st.mood && st.id === s.id) ? 'on' : ''}" title="${s.word}">${stickerSVG(s.id)}</button>`).join('')}</div>
+      <div class="mood-pick">${MOOD_STICKERS.map(id => `<button data-mood="${id}" class="${m.stickers.some(st => st.mood && st.id === id) ? 'on' : ''}">${stickerSVG(id)}</button>`).join('')}</div>
       <textarea id="edText" class="ruled" placeholder="오늘은 어땠나요">${esc(m.body)}</textarea>`;
   } else {
     box.innerHTML = `<textarea id="edText" class="ruled" placeholder="내용">${esc(m.body)}</textarea>`;
@@ -507,8 +509,8 @@ function renderPicker() {
   const chosen = picker.mode === 'quick' ? pendingStickers : [];
   const tabs = `<div class="pop-tabs"><button data-ptab="sticker" class="${picker.tab === 'sticker' ? 'on' : ''}">STICKERS</button><button data-ptab="emoji" class="${picker.tab === 'emoji' ? 'on' : ''}">EMOJI</button></div>`;
   const body = picker.tab === 'sticker'
-    ? `<p class="pop-hint">누르면 메모에 붙고, 메모 위에서 끌어서 옮겨요 (최대 ${MAX_STICKERS}개${picker.mode === 'quick' ? ' · 일기는 첫 장이 오늘의 기분' : ''})</p>
-       <div class="sticker-set">${STICKERS.map(s => `<button data-sticker="${s.id}" class="${chosen.includes(s.id) ? 'on' : ''}" title="${s.word}">${stickerSVG(s.id)}</button>`).join('')}</div>`
+    ? `<p class="pop-hint">누르면 메모에 붙고, 메모 위에서 끌어서 옮겨요 (최대 ${MAX_STICKERS}개${picker.mode === 'quick' ? ' · 일기에 표정을 먼저 고르면 오늘의 기분' : ''})</p>
+       ${STICKER_GROUPS.map(([g, label]) => `<h5>${label}</h5><div class="sticker-set">${STICKERS.filter(s => s.group === g).map(s => `<button data-sticker="${s.id}" class="${chosen.includes(s.id) ? 'on' : ''}" title="${s.word}">${stickerSVG(s.id)}</button>`).join('')}</div>`).join('')}`
     : `<p class="pop-hint">커서 위치에 넣어요</p>` + Object.entries(EMOJI).map(([g, s]) => `
        <h5>${g}</h5><div class="emoji-set">${[...new Intl.Segmenter().segment(s)].map(x => `<button data-emoji="${x.segment}">${x.segment}</button>`).join('')}</div>`).join('');
   $('#emojiPop').innerHTML = tabs + body;
