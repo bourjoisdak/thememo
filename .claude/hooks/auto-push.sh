@@ -11,8 +11,15 @@ git commit -q \
   -m "변경: $files" \
   -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" || exit 0
 
-if git push -q 2>/dev/null; then
-  echo "{\"systemMessage\": \"자동 커밋·푸시 완료: $(git log -1 --format=%h)\"}"
+# origin(memo-cabinet)과 thememo 두 저장소에 모두 푸시
+failed=""
+for remote in origin thememo; do
+  git remote get-url "$remote" >/dev/null 2>&1 || continue
+  git push -q "$remote" HEAD 2>/dev/null || failed="$failed $remote"
+done
+
+if [ -z "$failed" ]; then
+  echo "{\"systemMessage\": \"자동 커밋·푸시 완료: $(git log -1 --format=%h) (origin, thememo)\"}"
 else
-  echo "{\"systemMessage\": \"자동 커밋은 했지만 푸시에 실패했어요 (git push 확인 필요)\"}"
+  echo "{\"systemMessage\": \"자동 커밋은 했지만 푸시에 실패했어요:$failed\"}"
 fi
