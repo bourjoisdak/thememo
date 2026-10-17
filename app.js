@@ -2,27 +2,28 @@
 
 // ───────── 설정값 ─────────
 const TYPES = {
-  note:  { label: '메모', tab: 'Notes',   head: ['Note', '메모'] },
-  todo:  { label: '투두', tab: 'To-do',   head: ['To-do', '할 일 목록'] },
-  habit: { label: '습관', tab: 'Habits',  head: ['Habit', '트래커'] },
-  diary: { label: '일기', tab: 'Journal', head: ['Daily', '일기'] },
+  note:  { label: 'Notes',   head: ['Note', 'Page'] },
+  todo:  { label: 'To-do',   head: ['To-do', 'List'] },
+  habit: { label: 'Habits',  head: ['Habit', 'Tracker'] },
+  diary: { label: 'Journal', head: ['Daily', 'Journal'] },
 };
 
 // 카테고리별 키워드. 많이 맞는 쪽으로 분류된다.
 const CATEGORIES = [
-  { id: 'work',   name: '업무',     en: 'work\nmatters',   words: ['회의', '미팅', '보고', '보고서', '프로젝트', '메일', '거래처', '마감', '출근', '퇴근', '업무', '팀장', '클라이언트', '견적', '계약', '발표', '자료', '회사', '결재'] },
-  { id: 'study',  name: '공부',     en: 'study\nnotes',    words: ['공부', '강의', '책', '독서', '시험', '영어', '단어', '복습', '예습', '수업', '과제', '자격증', '외우', '읽기', '스터디', '인강', '토익'] },
-  { id: 'money',  name: '돈',       en: 'money\ntalks',    words: ['돈', '결제', '카드', '월세', '적금', '가계부', '지출', '송금', '세금', '이체', '통장', '대출', '환불', '월급', '용돈', '할부'] },
-  { id: 'health', name: '건강',     en: 'body &\nhealth',  words: ['운동', '헬스', '러닝', '달리기', '병원', '약', '다이어트', '물', '수면', '잠', '스트레칭', '요가', '필라테스', '걷기', '만보', '식단', '영양제'] },
-  { id: 'shop',   name: '쇼핑',     en: 'shopping\nlist',  words: ['사기', '살것', '살 것', '구매', '장보기', '장 보기', '주문', '쿠팡', '마트', '택배', '우유', '계란', '휴지', '세제', '배송'] },
-  { id: 'idea',   name: '아이디어', en: 'idea\nbank',      words: ['아이디어', '생각났', '만들어', '만들기', '기획', '앱', '영감', '컨셉', '콘셉트', '구상', '해보면', '어떨까'] },
-  { id: 'people', name: '사람·약속', en: 'people &\nplans', words: ['약속', '생일', '만나', '친구', '엄마', '아빠', '가족', '선물', '연락', '전화', '모임', '결혼식', '저녁 먹'] },
-  { id: 'life',   name: '일상·기록', en: 'daily\nrecords',  words: ['오늘', '하루', '기분', '날씨', '산책', '카페', '영화', '여행', '맛집', '일기'] },
-  { id: 'etc',    name: '기타',     en: 'odds &\nends',    words: [] },
+  { id: 'work', label: 'Work',   name: '업무',     en: 'work\nmatters',   words: ['회의', '미팅', '보고', '보고서', '프로젝트', '메일', '거래처', '마감', '출근', '퇴근', '업무', '팀장', '클라이언트', '견적', '계약', '발표', '자료', '회사', '결재'] },
+  { id: 'study', label: 'Study',  name: '공부',     en: 'study\nnotes',    words: ['공부', '강의', '책', '독서', '시험', '영어', '단어', '복습', '예습', '수업', '과제', '자격증', '외우', '읽기', '스터디', '인강', '토익'] },
+  { id: 'money', label: 'Money',  name: '돈',       en: 'money\ntalks',    words: ['돈', '결제', '카드', '월세', '적금', '가계부', '지출', '송금', '세금', '이체', '통장', '대출', '환불', '월급', '용돈', '할부'] },
+  { id: 'health', label: 'Health', name: '건강',     en: 'body &\nhealth',  words: ['운동', '헬스', '러닝', '달리기', '병원', '약', '다이어트', '물', '수면', '잠', '스트레칭', '요가', '필라테스', '걷기', '만보', '식단', '영양제'] },
+  { id: 'shop', label: 'Shopping',   name: '쇼핑',     en: 'shopping\nlist',  words: ['사기', '살것', '살 것', '구매', '장보기', '장 보기', '주문', '쿠팡', '마트', '택배', '우유', '계란', '휴지', '세제', '배송'] },
+  { id: 'idea', label: 'Ideas',   name: '아이디어', en: 'idea\nbank',      words: ['아이디어', '생각났', '만들어', '만들기', '기획', '앱', '영감', '컨셉', '콘셉트', '구상', '해보면', '어떨까'] },
+  { id: 'people', label: 'People', name: '사람·약속', en: 'people &\nplans', words: ['약속', '생일', '만나', '친구', '엄마', '아빠', '가족', '선물', '연락', '전화', '모임', '결혼식', '저녁 먹'] },
+  { id: 'life', label: 'Daily',   name: '일상·기록', en: 'daily\nrecords',  words: ['오늘', '하루', '기분', '날씨', '산책', '카페', '영화', '여행', '맛집', '일기'] },
+  { id: 'etc', label: 'Others',    name: '기타',     en: 'odds &\nends',    words: [] },
 ];
-const ALL = { id: 'all', name: '전체', en: 'behind\nthe memos' };
+const ALL = { id: 'all', label: 'All', name: '전체', en: 'behind\nthe memos' };
 
 const FONTS = [
+  { id: 'yuntaeng',   name: '온글잎 윤탱체',  css: '"OwnglyphYuntaeng", "Gaegu", cursive' },
   { id: 'pen',        name: '나눔손글씨 펜',  css: '"Nanum Pen Script", cursive' },
   { id: 'gaegu',      name: '개구',           css: '"Gaegu", cursive' },
   { id: 'gamja',      name: '감자꽃',         css: '"Gamja Flower", cursive' },
@@ -45,11 +46,11 @@ const EMOJI = {
 const MAX_STICKERS = 3;
 
 const STORE_KEY = 'memo-sorter:v1';
-const PREF_KEY = 'memo-sorter:prefs:v2';
+const PREF_KEY = 'memo-sorter:prefs:v3';
 
 // ───────── 상태 ─────────
 let memos = load(STORE_KEY, []).map(m => ({ stickers: [], ...m }));
-let prefs = Object.assign({ font: 'pen', size: 22, theme: null }, load(PREF_KEY, {}));
+let prefs = Object.assign({ font: 'yuntaeng', size: 20, theme: null }, load(PREF_KEY, {}));
 let view = { cat: 'all', type: 'all', q: '' };
 let editingId = null;
 let quickOverride = { type: null, cat: null };
@@ -155,19 +156,19 @@ function renderFolderTabs() {
   const tabs = [{ ...ALL, n: memos.length }, ...CATEGORIES.map(c => ({ ...c, n: counts[c.id] || 0 }))]
     .filter(t => t.id === 'all' || t.n > 0 || view.cat === t.id);
   $('#folderTabs').innerHTML = tabs.map(t =>
-    `<button data-cat="${t.id}" class="${view.cat === t.id ? 'on' : ''}">${esc(t.name)}<span class="n">${pad(t.n)}</span></button>`).join('');
+    `<button data-cat="${t.id}" class="${view.cat === t.id ? 'on' : ''}">${esc(t.label)}<span class="n">${pad(t.n)}</span></button>`).join('');
 }
 
 function renderTypeTabs() {
-  const tabs = [['all', 'All Files'], ...Object.entries(TYPES).map(([k, v]) => [k, `${v.tab} · ${v.label}`])];
+  const tabs = [['all', 'All Types'], ...Object.entries(TYPES).map(([k, v]) => [k, v.label])];
   $('#typeTabs').innerHTML = tabs.map(([k, l]) =>
-    `<button data-type="${k}" class="${view.type === k ? 'on' : ''}"><span>${esc(l)}</span><span class="ast">✱</span></button>`).join('');
+    `<button data-type="${k}" class="${view.type === k ? 'on' : ''}">${esc(l)}</button>`).join('');
 }
 
 function renderCover(list) {
   const c = catOf(view.cat);
   const idx = view.cat === 'all' ? 0 : CATEGORIES.indexOf(c) + 1;
-  $('#coverEdition').innerHTML = `FOLDER ${pad(idx)}:<br>${esc(c.name)}${view.type === 'all' ? '' : ' / ' + TYPES[view.type].label}`;
+  $('#coverEdition').innerHTML = `FOLDER ${pad(idx)}:<br>${esc(c.label)}${view.type === 'all' ? '' : ' / ' + TYPES[view.type].label}`;
   $('#coverTitle').innerHTML = esc(c.en).replace('\n', '<br>');
   const last = list.length ? Math.max(...list.map(m => m.updated)) : null;
   const mix = Object.entries(TYPES).map(([k, v]) => [v.label, list.filter(m => m.type === k).length]).filter(([, n]) => n).map(([l, n]) => `${l} ${n}`).join(' · ');
@@ -196,14 +197,14 @@ function sheetHTML(m) {
     inner = `<h3>${esc(m.title || '습관')}</h3>
       <div class="habit-days">${days.map(d => `<span>${d.getDate()}</span>`).join('')}</div>
       <div class="habit-row">${days.map(d => { const k = dayKey(d); return `<button data-day="${k}" class="${m.checks[k] ? 'on' : ''} ${k === tk ? 'today' : ''}" title="${k}"></button>`; }).join('')}</div>
-      <div class="streak"><b>${streak(m)}</b>DAYS IN A ROW · 이번 달 ${monthCount(m)}회</div>`;
+      <div class="streak"><b>${streak(m)}</b>DAYS IN A ROW · ${monthCount(m)} THIS MONTH</div>`;
   } else {
     inner = `${m.title ? `<h3>${esc(m.title)}</h3>` : ''}${m.body ? `<p class="body ruled">${esc(m.body)}</p>` : ''}`;
   }
   return `<article class="sheet ${m.type}" data-id="${m.id}" style="${style}">
     <header class="sheet-head"><b>${h1}</b><span>${h2}</span></header>
     ${pics.length ? `<div class="polaroids">${pics.map(polaroid).join('')}</div>` : ''}
-    <p class="bar-label mono"><span>${fmtDate(m.created)}</span><span>${esc(catOf(m.category).name)}</span></p>
+    <p class="bar-label mono"><span>${fmtDate(m.created)}</span><span class="cat">${esc(catOf(m.category).label)}</span></p>
     ${inner}
   </article>`;
 }
@@ -244,11 +245,11 @@ function currentGuess() {
 
 function renderGuess() {
   const { text, type, cat } = currentGuess();
-  if (!text.trim()) { $('#guess').innerHTML = '<span>FILED UNDER → 자동 분류</span>'; return; }
+  if (!text.trim()) { $('#guess').innerHTML = '<span>FILED UNDER → AUTO</span>'; return; }
   $('#guess').innerHTML = `
     <span>FILED UNDER →</span>
     <select id="gType" class="mono">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === type ? 'selected' : ''}>${v.label}</option>`).join('')}</select>
-    <select id="gCat" class="mono">${CATEGORIES.map(c => `<option value="${c.id}" ${c.id === cat ? 'selected' : ''}>${c.name}</option>`).join('')}</select>
+    <select id="gCat" class="mono">${CATEGORIES.map(c => `<option value="${c.id}" ${c.id === cat ? 'selected' : ''}>${c.label}</option>`).join('')}</select>
     ${quickOverride.type || quickOverride.cat ? '<button class="mono-link" id="gReset">AUTO</button>' : ''}`;
 }
 
@@ -277,7 +278,7 @@ function openEditor(id) {
   if (!m) return;
   editingId = id;
   $('#edType').innerHTML = Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === m.type ? 'selected' : ''}>${v.label}</option>`).join('');
-  $('#edCat').innerHTML = CATEGORIES.map(c => `<option value="${c.id}" ${c.id === m.category ? 'selected' : ''}>${c.name}</option>`).join('');
+  $('#edCat').innerHTML = CATEGORIES.map(c => `<option value="${c.id}" ${c.id === m.category ? 'selected' : ''}>${c.label}</option>`).join('');
   $('#edFont').innerHTML = `<option value="">기본 서체</option>` + FONTS.map(f => `<option value="${f.id}" ${f.id === m.font ? 'selected' : ''}>${f.name}</option>`).join('');
   $('#edDate').textContent = fmtHand(m.created);
   $('#edTitle').value = m.title;
@@ -325,7 +326,7 @@ function renderEditorContent(m) {
         ${weeks.map(w => `
           <div class="habit-days">${w.map(d => `<span>${d.getMonth() + 1}/${d.getDate()}</span>`).join('')}</div>
           <div class="habit-row">${w.map(d => { const k = dayKey(d); return `<button data-eday="${k}" class="${m.checks[k] ? 'on' : ''} ${k === tk ? 'today' : ''}"></button>`; }).join('')}</div>`).join('')}
-        <div class="streak"><b>${streak(m)}</b>DAYS IN A ROW · 이번 달 ${monthCount(m)}회</div>
+        <div class="streak"><b>${streak(m)}</b>DAYS IN A ROW · ${monthCount(m)} THIS MONTH</div>
         <p class="bar-label mono ed-section">NOTES</p>
         <textarea id="edText" class="ruled" placeholder="목표, 규칙 등">${esc(m.body)}</textarea>
       </div>`;

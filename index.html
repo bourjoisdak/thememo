@@ -6,7 +6,7 @@
   <title>Memo Cabinet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;700;800&family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600&family=Gowun+Batang&family=Nanum+Pen+Script&family=Gaegu:wght@400;700&family=Gamja+Flower&family=Hi+Melody&family=Nanum+Gothic+Coding&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;700&family=Noto+Sans+KR:wght@300;400;700&family=Noto+Serif+KR:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600&family=Gowun+Batang&family=Nanum+Pen+Script&family=Gaegu:wght@400;700&family=Gamja+Flower&family=Hi+Melody&family=Nanum+Gothic+Coding&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -50,7 +50,6 @@
     <section class="cabinet">
       <nav class="folder-tabs" id="folderTabs"></nav>
       <div class="folder">
-        <nav class="side-tabs" id="typeTabs"></nav>
         <div class="folder-body">
           <div class="cover">
             <div class="cover-title">
@@ -59,11 +58,15 @@
             </div>
             <div class="info mono">
               <div id="coverRows" class="rows"></div>
-              <div><span>SEARCH:</span><input id="search" type="search" placeholder="키워드"></div>
+              <div><span>SEARCH:</span><input id="search" type="search" placeholder="KEYWORD"></div>
             </div>
           </div>
-          <div class="sheets" id="grid"></div>
-          <p class="empty hand" id="empty" hidden>이 서류철은 아직 비어 있어요.</p>
+          <!-- 안쪽 서류철: 메모 형태 -->
+          <nav class="folder-tabs inner-tabs" id="typeTabs"></nav>
+          <div class="inner-folder">
+            <div class="sheets" id="grid"></div>
+            <p class="empty hand" id="empty" hidden>이 서류철은 아직 비어 있어요.</p>
+          </div>
         </div>
       </div>
     </section>
