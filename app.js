@@ -1,4 +1,4 @@
-/* 메모 서류함 — 브라우저 localStorage에 저장되는 1인용 메모 앱 */
+/* the memo — 1인용 메모 앱. 메모는 localStorage, 사진은 IndexedDB에 저장 */
 
 // ───────── 설정값 ─────────
 const TYPES = {
@@ -51,18 +51,19 @@ const EMOJI = {
   '음식': '🍎🍓🍌🥑🍞🍳🍜🍣🍕🍔🍰🍩🍫🍙🥗',
   '기호': '✅☑️❌⭕❗❓➡️🔁🔔🏁🎯📍⚠️',
 };
-const MAX_STICKERS = 3;
+const MAX_STICKERS = 6;
 
 const STORE_KEY = 'memo-sorter:v1';
 const PREF_KEY = 'memo-sorter:prefs:v4';
 
 // ───────── 상태 ─────────
-let memos = load(STORE_KEY, []).map(m => ({ stickers: [], ...m }));
+let memos = []; // 아래 유틸이 정의된 뒤 불러온다
 let prefs = Object.assign({ font: 'ryuttung', size: 20, theme: null }, load(PREF_KEY, {}));
 let view = { cat: 'all', type: 'all', q: '' };
 let editingId = null;
 let quickOverride = { type: null, cat: null };
 let pendingStickers = [];
+let pendingPhotos = [];
 let picker = { mode: null, tab: 'sticker', target: null };
 
 // ───────── 저장 ─────────
@@ -93,9 +94,90 @@ function lastDays(n) {
   for (let i = n - 1; i >= 0; i--) { const d = new Date(t); d.setDate(t.getDate() - i); out.push(d); }
   return out;
 }
-function polaroid(v) {
-  return isSticker(v) ? `<div class="polaroid">${stickerSVG(v)}</div>` : `<div class="polaroid emoji">${esc(v)}</div>`;
+const clamp = (v, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
+
+// 예전 형식(스티커 id 문자열, 일기 mood)을 위치가 있는 스티커로 바꾼다
+function normalize(m) {
+  m = { stickers: [], photos: [], ...m };
+  m.stickers = m.stickers.filter(Boolean)
+    .map((st, i) => typeof st === 'string' ? newSticker(st, i) : st)
+    .filter(st => isSticker(st.id));
+  if (m.mood) {
+    if (isSticker(m.mood)) m.stickers.unshift({ ...newSticker(m.mood, 0), mood: true });
+    m.mood = null;
+  }
+  return m;
 }
+function newSticker(id, i = 0) {
+  return { id, x: clamp(86 - i * 16 + (Math.random() * 8 - 4), 8, 92), y: clamp(10 + i * 6 + Math.random() * 6, 4, 90), r: Math.round(Math.random() * 16 - 8) };
+}
+const stickerFree = (st, i, removable) => `<div class="stk-free" data-si="${i}" style="left:${st.x}%;top:${st.y}%;--r:${st.r || 0}deg">${stickerSVG(st.id)}${removable ? `<button class="stk-rm" data-unstick="${i}" title="떼기">✕</button>` : ''}</div>`;
+
+// ───────── 사진 저장소: 용량이 큰 사진은 localStorage 대신 IndexedDB에 ─────────
+const photoDB = (() => {
+  let dbp;
+  const open = () => dbp ??= new Promise((res, rej) => {
+    const r = indexedDB.open('memo-photos', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('photos');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const t = db.transaction('photos', mode);
+      const req = fn(t.objectStore('photos'));
+      t.oncomplete = () => res(req.result);
+      t.onerror = () => rej(t.error);
+    });
+  };
+  return {
+    put: (id, blob) => run('readwrite', st => st.put(blob, id)),
+    get: id => run('readonly', st => st.get(id)),
+    del: id => run('readwrite', st => st.delete(id)),
+  };
+})();
+const photoURLs = new Map();
+async function photoURL(id) {
+  if (!photoURLs.has(id)) {
+    const blob = await photoDB.get(id).catch(() => null);
+    photoURLs.set(id, blob ? URL.createObjectURL(blob) : '');
+  }
+  return photoURLs.get(id);
+}
+function hydratePhotos(root = document) {
+  root.querySelectorAll('img[data-photo]:not([src])').forEach(async img => {
+    const url = await photoURL(img.dataset.photo);
+    if (url) img.src = url; else img.closest('.ph')?.classList.add('missing');
+  });
+}
+function forgetPhotos(ids) {
+  for (const id of ids) {
+    photoDB.del(id).catch(() => {});
+    if (photoURLs.get(id)) URL.revokeObjectURL(photoURLs.get(id));
+    photoURLs.delete(id);
+  }
+}
+// 긴 변 1600px JPEG로 줄여서 저장
+async function shrinkImage(file, max = 1600) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(res, 'image/jpeg', 0.85));
+}
+async function storePhotos(files) {
+  const ids = [];
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    try { const id = 'p' + uid(); await photoDB.put(id, await shrinkImage(f)); ids.push(id); }
+    catch (err) { console.warn('사진 저장 실패', err); }
+  }
+  if (files.length && !ids.length) alert('사진을 불러오지 못했어요.');
+  return ids;
+}
+const photoFig = (id, i, removable) => `<figure class="ph" data-pi="${i}"><img data-photo="${id}" alt="">${removable ? `<button class="x" data-unphoto="${i}" title="사진 빼기">✕</button>` : ''}</figure>`;
 
 // ───────── 자동 분류 ─────────
 const BULLET = /^\s*(?:[-*•·□☐]|\[\s?\]|\d+[.)])\s+/;
@@ -127,7 +209,7 @@ function parseQuick(text, type, cat) {
   const lines = text.trim().split('\n');
   const m = {
     id: uid(), type, category: cat,
-    title: '', body: '', items: [], checks: {}, mood: null, stickers: [],
+    title: '', body: '', items: [], checks: {}, mood: null, stickers: [], photos: [...pendingPhotos],
     font: null, size: null,
     created: Date.now(), updated: Date.now(),
   };
@@ -147,13 +229,10 @@ function parseQuick(text, type, cat) {
   } else {
     if (lines.length > 1 && lines[0].length <= 40) { m.title = lines[0]; m.body = lines.slice(1).join('\n').trim(); }
     else m.body = text.trim();
-    if (type === 'diary') {
-      m.title = m.title || fmtHand(Date.now());
-      const mood = pendingStickers[0];
-      if (mood) { m.mood = mood; pendingStickers = pendingStickers.slice(1); }
-    }
+    if (type === 'diary') m.title = m.title || fmtHand(Date.now());
   }
-  m.stickers = [...pendingStickers];
+  // 일기는 첫 스티커가 오늘의 기분
+  m.stickers = pendingStickers.map((id, i) => ({ ...newSticker(id, i), ...(type === 'diary' && i === 0 ? { mood: true } : {}) }));
   return m;
 }
 
@@ -211,7 +290,8 @@ function renderOverview() {
 function sheetHTML(m) {
   const style = [m.font ? `--card-font:${fontCss(m.font)}` : '', m.size ? `--card-size:${m.size}px` : ''].filter(Boolean).join(';');
   const [h1, h2] = TYPES[m.type].head;
-  const pics = [m.mood, ...m.stickers].filter(Boolean).slice(0, 2);
+  const photos = m.photos.slice(0, 3);
+  const photoHTML = photos.length ? `<div class="sheet-photos" style="--n:${photos.length}">${photos.map((id, i) => photoFig(id, i)).join('')}${m.photos.length > 3 ? `<span class="more">+${m.photos.length - 3}</span>` : ''}</div>` : '';
   let inner = '';
   if (m.type === 'todo') {
     const done = m.items.filter(i => i.done).length;
@@ -232,9 +312,9 @@ function sheetHTML(m) {
   }
   return `<article class="sheet ${m.type}" data-id="${m.id}" style="${style}">
     <header class="sheet-head"><b>${h1}</b><span>${h2}</span></header>
-    ${pics.length ? `<div class="polaroids">${pics.map(polaroid).join('')}</div>` : ''}
     <p class="bar-label mono"><span>${fmtDate(m.created)}</span><span class="cat">${esc(catOf(m.category).label)}</span></p>
-    ${inner}
+    ${photoHTML}${inner}
+    ${m.stickers.length ? `<div class="stk-layer">${m.stickers.map((st, i) => stickerFree(st, i)).join('')}</div>` : ''}
   </article>`;
 }
 
@@ -258,6 +338,7 @@ function renderGrid() {
     .filter(m => !q || [m.title, m.body, ...m.items.map(i => i.text)].join(' ').toLowerCase().includes(q))
     .sort((a, b) => b.updated - a.updated);
   $('#grid').innerHTML = list.map(sheetHTML).join('');
+  hydratePhotos($('#grid'));
   $('#empty').hidden = list.length > 0;
 }
 
@@ -284,16 +365,25 @@ function renderGuess() {
 function renderPending() {
   $('#pendingStickers').innerHTML = pendingStickers.map((id, i) => `<button data-unpend="${i}" title="빼기">${stickerSVG(id)}</button>`).join('');
 }
+function renderPendingPhotos() {
+  $('#pendingPhotos').innerHTML = pendingPhotos.map((id, i) => photoFig(id, i, true)).join('');
+  hydratePhotos($('#pendingPhotos'));
+}
+async function addQuickPhotos(files) {
+  pendingPhotos.push(...await storePhotos(files));
+  renderPendingPhotos();
+}
 
 function quickSave() {
   const { text, type, cat } = currentGuess();
-  if (!text.trim()) return;
+  if (!text.trim() && !pendingPhotos.length) return;
   memos.push(parseQuick(text, type, cat));
   save();
   $('#quick').value = '';
   quickOverride = { type: null, cat: null };
   pendingStickers = [];
-  renderGuess(); renderPending(); render();
+  pendingPhotos = [];
+  renderGuess(); renderPending(); renderPendingPhotos(); render();
   $('#quick').focus();
 }
 
@@ -313,6 +403,7 @@ function openEditor(id) {
   applyEditorFont(m);
   renderEditorHead(m);
   renderEditorStickers(m);
+  renderEditorPhotos(m);
   renderEditorContent(m);
   $('#overlay').hidden = false;
 }
@@ -330,7 +421,16 @@ function applyEditorFont(m) {
 }
 
 function renderEditorStickers(m) {
-  $('#edStickers').innerHTML = m.stickers.map((v, i) => `<div class="polaroid">${isSticker(v) ? stickerSVG(v) : esc(v)}<button data-unstick="${i}" title="떼기">✕</button></div>`).join('');
+  $('#edStickers').innerHTML = m.stickers.map((st, i) => stickerFree(st, i, true)).join('');
+}
+function renderEditorPhotos(m) {
+  $('#edPhotos').innerHTML = m.photos.map((id, i) => photoFig(id, i, true)).join('');
+  hydratePhotos($('#edPhotos'));
+}
+async function addEditorPhotos(files) {
+  const m = editing(); if (!m) return;
+  m.photos.push(...await storePhotos(files));
+  touch(); renderEditorPhotos(m);
 }
 
 function renderEditorContent(m) {
@@ -361,7 +461,7 @@ function renderEditorContent(m) {
   } else if (m.type === 'diary') {
     box.innerHTML = `
       <p class="bar-label mono">TODAY'S MOOD</p>
-      <div class="mood-pick">${STICKERS.map(s => `<button data-mood="${s.id}" class="${m.mood === s.id ? 'on' : ''}" title="${s.word}">${stickerSVG(s.id)}</button>`).join('')}</div>
+      <div class="mood-pick">${STICKERS.map(s => `<button data-mood="${s.id}" class="${m.stickers.some(st => st.mood && st.id === s.id) ? 'on' : ''}" title="${s.word}">${stickerSVG(s.id)}</button>`).join('')}</div>
       <textarea id="edText" class="ruled" placeholder="오늘은 어땠나요">${esc(m.body)}</textarea>`;
   } else {
     box.innerHTML = `<textarea id="edText" class="ruled" placeholder="내용">${esc(m.body)}</textarea>`;
@@ -385,7 +485,7 @@ function convertType(m, to) {
 function closeEditor() {
   const m = editing();
   if (m) {
-    const empty = !m.title.trim() && !m.body.trim() && !m.items.some(i => i.text.trim()) && !Object.keys(m.checks).length && !m.stickers.length;
+    const empty = !m.title.trim() && !m.body.trim() && !m.items.some(i => i.text.trim()) && !Object.keys(m.checks).length && !m.stickers.length && !m.photos.length;
     if (empty) memos = memos.filter(x => x.id !== m.id);
     else m.items = m.items.filter(i => i.text.trim());
     save();
@@ -408,10 +508,10 @@ function showPicker(anchor, mode, target) {
   pop.style.top = (r.bottom + h + 8 < window.innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
 }
 function renderPicker() {
-  const chosen = picker.mode === 'quick' ? pendingStickers : (editing()?.stickers || []);
+  const chosen = picker.mode === 'quick' ? pendingStickers : [];
   const tabs = `<div class="pop-tabs"><button data-ptab="sticker" class="${picker.tab === 'sticker' ? 'on' : ''}">STICKERS</button><button data-ptab="emoji" class="${picker.tab === 'emoji' ? 'on' : ''}">EMOJI</button></div>`;
   const body = picker.tab === 'sticker'
-    ? `<p class="pop-hint">메모에 붙여요 (최대 ${MAX_STICKERS}개${picker.mode === 'quick' ? ' · 일기는 첫 장이 오늘의 기분' : ''})</p>
+    ? `<p class="pop-hint">누르면 메모에 붙고, 메모 위에서 끌어서 옮겨요 (최대 ${MAX_STICKERS}개${picker.mode === 'quick' ? ' · 일기는 첫 장이 오늘의 기분' : ''})</p>
        <div class="sticker-set">${STICKERS.map(s => `<button data-sticker="${s.id}" class="${chosen.includes(s.id) ? 'on' : ''}" title="${s.word}">${stickerSVG(s.id)}</button>`).join('')}</div>`
     : `<p class="pop-hint">커서 위치에 넣어요</p>` + Object.entries(EMOJI).map(([g, s]) => `
        <h5>${g}</h5><div class="emoji-set">${[...new Intl.Segmenter().segment(s)].map(x => `<button data-emoji="${x.segment}">${x.segment}</button>`).join('')}</div>`).join('');
@@ -468,6 +568,13 @@ function bind() {
     const b = e.target.closest('[data-unpend]'); if (!b) return;
     pendingStickers.splice(+b.dataset.unpend, 1); renderPending();
   });
+  $('#quickPhoto').addEventListener('change', e => { addQuickPhotos([...e.target.files]); e.target.value = ''; });
+  $('#pendingPhotos').addEventListener('click', e => {
+    const b = e.target.closest('[data-unphoto]'); if (!b) return;
+    forgetPhotos(pendingPhotos.splice(+b.dataset.unphoto, 1)); renderPendingPhotos();
+  });
+  dropZone($('#capture'), addQuickPhotos);
+  dropZone($('#editor'), addEditorPhotos);
 
   // 필터
   for (const id of ['#stack', '#overview']) $(id).addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { view.cat = b.dataset.cat; render(); } });
@@ -477,6 +584,7 @@ function bind() {
   // 내지: 체크는 바로, 나머지는 편집기 열기
   $('#grid').addEventListener('click', e => {
     const card = e.target.closest('.sheet'); if (!card) return;
+    if (Date.now() - lastDragEnd < 300) return; // 스티커를 옮긴 직후의 클릭은 무시
     const m = memos.find(x => x.id === card.dataset.id);
     const t = e.target.closest('[data-toggle]');
     const d = e.target.closest('[data-day]');
@@ -491,6 +599,7 @@ function bind() {
   $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeEditor(); });
   $('#edDelete').addEventListener('click', () => {
     if (!confirm('이 메모를 삭제할까요?')) return;
+    forgetPhotos(editing()?.photos || []);
     memos = memos.filter(x => x.id !== editingId); save();
     editingId = null; $('#overlay').hidden = true; render();
   });
@@ -511,6 +620,15 @@ function bind() {
   $('#edStickers').addEventListener('click', e => {
     const b = e.target.closest('[data-unstick]'); if (!b) return;
     const m = editing(); m.stickers.splice(+b.dataset.unstick, 1); touch(); renderEditorStickers(m);
+    if (m.type === 'diary') renderEditorContent(m);
+  });
+  $('#edPhoto').addEventListener('change', e => { addEditorPhotos([...e.target.files]); e.target.value = ''; });
+  $('#edPhotos').addEventListener('click', e => {
+    const m = editing();
+    const x = e.target.closest('[data-unphoto]');
+    if (x) { forgetPhotos(m.photos.splice(+x.dataset.unphoto, 1)); touch(); renderEditorPhotos(m); return; }
+    const img = e.target.closest('img[data-photo]');
+    if (img?.src) window.open(img.src, '_blank'); // 원본 크기로 보기
   });
 
   $('#edContent').addEventListener('input', e => {
@@ -535,7 +653,13 @@ function bind() {
     else if (rm) m.items.splice(+rm.dataset.rm, 1);
     else if (e.target.id === 'addItem') m.items.push({ text: '', done: false });
     else if (day) { const k = day.dataset.eday; m.checks[k] ? delete m.checks[k] : (m.checks[k] = true); }
-    else if (mood) m.mood = m.mood === mood.dataset.mood ? null : mood.dataset.mood;
+    else if (mood) {
+      const cur = m.stickers.findIndex(st => st.mood);
+      const same = cur >= 0 && m.stickers[cur].id === mood.dataset.mood;
+      if (cur >= 0) m.stickers.splice(cur, 1);
+      if (!same) m.stickers.unshift({ ...newSticker(mood.dataset.mood, 0), mood: true });
+      renderEditorStickers(m);
+    }
     else return;
     touch(); renderEditorContent(m);
     if (e.target.id === 'addItem') $(`[data-item="${m.items.length - 1}"]`).focus();
@@ -549,7 +673,10 @@ function bind() {
     const emo = e.target.closest('[data-emoji]');
     if (tab) { picker.tab = tab.dataset.ptab; renderPicker(); }
     else if (stk && picker.mode === 'quick') { toggleSticker(pendingStickers, stk.dataset.sticker); renderPending(); renderPicker(); }
-    else if (stk && picker.mode === 'editor') { const m = editing(); toggleSticker(m.stickers, stk.dataset.sticker); touch(); renderEditorStickers(m); renderPicker(); }
+    else if (stk && picker.mode === 'editor') {
+      const m = editing();
+      if (m.stickers.length < MAX_STICKERS) { m.stickers.push(newSticker(stk.dataset.sticker, m.stickers.length)); touch(); renderEditorStickers(m); }
+    }
     else if (emo && picker.target) insertAtCursor(picker.target, emo.dataset.emoji);
   });
   document.addEventListener('click', e => { if (!e.target.closest('#emojiPop')) hidePicker(); });
@@ -575,8 +702,13 @@ function bind() {
   });
 
   // 백업
-  $('#exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({ memos, prefs }, null, 2)], { type: 'application/json' });
+  $('#exportBtn').addEventListener('click', async () => {
+    const photos = {};
+    for (const id of memos.flatMap(m => m.photos)) {
+      const b = await photoDB.get(id).catch(() => null);
+      if (b) photos[id] = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
+    }
+    const blob = new Blob([JSON.stringify({ memos, prefs, photos }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `memo-backup-${todayKey()}.json`; a.click();
     URL.revokeObjectURL(a.href);
@@ -587,12 +719,61 @@ function bind() {
       const data = JSON.parse(await f.text());
       if (!Array.isArray(data.memos)) throw 0;
       if (!confirm(`메모 ${data.memos.length}개를 불러옵니다. 현재 메모는 대체됩니다.`)) return;
-      memos = data.memos.map(m => ({ stickers: [], ...m })); save(); render();
+      for (const [id, url] of Object.entries(data.photos || {})) await photoDB.put(id, await (await fetch(url)).blob());
+      memos = data.memos.map(normalize); save(); render();
     } catch { alert('올바른 백업 파일이 아니에요.'); }
     e.target.value = '';
   });
 }
 
+// ───────── 스티커 끌어 옮기기 (메모 카드·편집기 공통) ─────────
+let drag = null, lastDragEnd = 0;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.stk-free');
+  if (!el || e.target.closest('.stk-rm') || e.button > 0) return;
+  const layer = el.parentElement;
+  const memoId = layer.closest('.sheet')?.dataset.id || editingId;
+  drag = { el, layer, memoId, i: +el.dataset.si, sx: e.clientX, sy: e.clientY, moved: false };
+  el.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+  drag.moved = true;
+  drag.el.classList.add('dragging');
+  const r = drag.layer.getBoundingClientRect();
+  drag.x = clamp((e.clientX - r.left) / r.width * 100);
+  drag.y = clamp((e.clientY - r.top) / r.height * 100);
+  drag.el.style.left = drag.x + '%';
+  drag.el.style.top = drag.y + '%';
+});
+document.addEventListener('pointerup', () => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.el.classList.remove('dragging');
+  if (!d.moved) return;
+  lastDragEnd = Date.now();
+  const m = memos.find(x => x.id === d.memoId), st = m?.stickers[d.i];
+  if (!st) return;
+  st.x = Math.round(d.x * 10) / 10;
+  st.y = Math.round(d.y * 10) / 10;
+  save();
+});
+
+// 사진 파일을 끌어다 놓을 수 있는 영역
+function dropZone(el, onFiles) {
+  const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+  el.addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); el.classList.add('drop-on'); });
+  el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drop-on'); });
+  el.addEventListener('drop', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); el.classList.remove('drop-on');
+    onFiles([...e.dataTransfer.files]);
+  });
+}
+
+memos = load(STORE_KEY, []).map(normalize);
 applyPrefs();
 bind();
 renderGuess();

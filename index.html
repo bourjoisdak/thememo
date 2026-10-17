@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Memo Cabinet</title>
+  <title>The Memo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;700&family=Noto+Sans+KR:wght@300;400;700&family=Noto+Serif+KR:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600&family=Gowun+Batang&family=Nanum+Pen+Script&family=Gaegu:wght@400;700&family=Gamja+Flower&family=Hi+Melody&family=Nanum+Gothic+Coding&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
     <header class="masthead">
       <div class="mono edition">EDITION 01:<br>MEMO ARCHIVE</div>
       <div class="masthead-title">
-        <h1>the memo cabinet</h1>
+        <h1>the memo</h1>
         <p class="mono caption">CURATED BY ©닭사장</p>
       </div>
       <div class="mono masthead-links">
@@ -25,8 +25,9 @@
       </div>
     </header>
 
-    <!-- 빠른 입력: 플래너 상단 띠 -->
-    <section class="capture">
+    <div class="workspace">
+    <!-- 왼쪽: 메모 작성 -->
+    <section class="capture" id="capture">
       <div class="capture-date">
         <p class="bar-label mono">TODAY'S DATE</p>
         <p class="hand big" id="today"></p>
@@ -34,11 +35,14 @@
       </div>
       <div class="capture-note">
         <p class="bar-label mono">QUICK NOTE — 아무거나 적으세요</p>
-        <textarea id="quick" class="hand ruled" rows="3" placeholder="내일 3시 거래처 미팅 자료 준비&#10;- 우유  - 계란  - 휴지&#10;매일 물 2L 마시기"></textarea>
+        <textarea id="quick" class="hand ruled" rows="6" placeholder="내일 3시 거래처 미팅 자료 준비&#10;- 우유  - 계란  - 휴지&#10;매일 물 2L 마시기"></textarea>
+        <div class="photo-strip" id="pendingPhotos"></div>
+        <p class="drop-hint mono">사진을 여기로 끌어다 놓아도 돼요</p>
+        <div class="guess mono" id="guess"></div>
         <div class="capture-bar">
-          <div class="guess mono" id="guess"></div>
+          <div class="pending" id="pendingStickers"></div>
           <div class="capture-actions">
-            <div class="pending" id="pendingStickers"></div>
+            <label class="icon-btn file-btn" title="사진 첨부">＋ 사진<input type="file" id="quickPhoto" accept="image/*" multiple hidden></label>
             <button class="icon-btn" id="quickEmoji" title="스티커 · 이모지">✱ 스티커</button>
             <button class="btn" id="quickSave">FILE IT <kbd>Ctrl ↵</kbd></button>
           </div>
@@ -46,7 +50,7 @@
       </div>
     </section>
 
-    <!-- 서류함 -->
+    <!-- 오른쪽: 서류함 -->
     <section class="cabinet">
       <!-- 뒤쪽 서류철: 계단처럼 겹쳐 쌓인 카테고리 -->
       <nav class="stack" id="stack"></nav>
@@ -66,6 +70,7 @@
         </div>
       </div>
     </section>
+    </div>
   </div>
 
   <!-- 편집: 플래너 내지 -->
@@ -98,13 +103,18 @@
           <span id="edSizeVal">20</span>
           <button class="icon-btn" data-size="1" title="크게">A+</button>
         </div>
+        <label class="icon-btn file-btn" title="사진 첨부">＋ 사진<input type="file" id="edPhoto" accept="image/*" multiple hidden></label>
         <button class="icon-btn" id="edEmoji" title="스티커 · 이모지">✱ 스티커</button>
       </div>
 
       <div class="ed-body" id="edBody">
-        <div class="ed-stickers" id="edStickers"></div>
-        <input class="ed-title" id="edTitle" placeholder="제목">
-        <div id="edContent"></div>
+        <div class="ed-paper">
+          <!-- 스티커는 이 층 위에서 끌어서 자유롭게 옮긴다 -->
+          <div class="stk-layer" id="edStickers"></div>
+          <input class="ed-title" id="edTitle" placeholder="제목">
+          <div class="photo-grid" id="edPhotos"></div>
+          <div id="edContent"></div>
+        </div>
       </div>
 
       <footer class="ed-foot">
