@@ -157,12 +157,17 @@ select option { background: var(--paper); color: var(--ink); }
 .masthead-links { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 
 /* ───────── 2단: 왼쪽 작성란, 오른쪽 서류함 ───────── */
-.workspace { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; gap: 28px; align-items: start; }
+/* 두 단의 높이를 화면 높이에 맞춰 하단선을 맞추고, 메모 목록은 서류철 안에서 스크롤 */
+.workspace {
+  display: grid; grid-template-columns: minmax(300px, 360px) 1fr; gap: 28px;
+  align-items: stretch;
+  height: max(640px, calc(100vh - 210px));
+}
 
 /* ───────── 메모 작성란 (플래너 내지) ───────── */
 .capture {
-  position: sticky; top: 16px;
   display: flex; flex-direction: column; gap: 18px;
+  min-height: 0; overflow-y: auto;
   background: var(--paper);
   padding: 22px 22px 18px;
   border-top: 6px solid var(--chef);
@@ -172,8 +177,10 @@ select option { background: var(--paper); color: var(--ink); }
 .capture.drop-on, .editor.drop-on { outline: 2px dashed var(--chef); outline-offset: -8px; }
 .drop-hint { margin: 6px 0 0; font-size: 11px; color: var(--ink-3); }
 .capture .guess { margin-top: 10px; }
+.capture-note { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .capture textarea {
-  width: 100%; border: 0; outline: 0; resize: vertical;
+  flex: 1;
+  width: 100%; border: 0; outline: 0; resize: none;
   background-color: transparent;
   padding: 2px 0 0;
   font-size: calc(var(--memo-size) + 2px);
@@ -190,7 +197,8 @@ select option { background: var(--paper); color: var(--ink); }
 .pending svg { width: 100%; height: 100%; }
 
 /* ───────── 서류함: 계단처럼 겹쳐 쌓은 서류철 ───────── */
-.cabinet { min-width: 0; }
+.cabinet { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.fold.front { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 /* 서류철 한 장 = 곡선 탭 + 띠. 다음 장이 --step 만큼 아래에서 겹친다 */
 .fold {
@@ -224,12 +232,13 @@ select option { background: var(--paper); color: var(--ink); }
   border-radius: 6px 6px 0 0;
   box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .45);
   padding: 30px 36px 0;
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
 }
 
 /* All 서류철에서만 보이는 개요 */
 .overview {
   display: grid; grid-template-columns: auto auto; justify-content: start; gap: 20px 44px; align-items: end;
-  margin-bottom: 36px;
+  margin-bottom: 28px;
 }
 .overview[hidden] { display: none; }
 .ov-num b { display: block; font-family: var(--futura); font-weight: var(--w-bold); font-size: clamp(56px, 7vw, 92px); line-height: .85; letter-spacing: -0.03em; }
@@ -246,34 +255,21 @@ select option { background: var(--paper); color: var(--ink); }
 .ov-list .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--fc); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
 .ov-list .n { font-weight: var(--w-thin); opacity: .7; }
 
-/* 안쪽 서류철: 메모 형태 탭 + 검색 */
-.inner-tabs { display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px; }
-.inner-tabs::-webkit-scrollbar { display: none; }
-.inner-tabs button {
-  flex: none;
-  width: 170px; height: 50px; margin-right: -8px;
-  padding: 4px 24px 0;
-  border: 0;
-  background: color-mix(in srgb, var(--fi) 16%, var(--fc));
-  color: var(--fi);
-  clip-path: path("M0 50 C10 50 13 45 15 36 L18 14 C20 5 25 0 35 0 L135 0 C145 0 150 5 152 14 L155 36 C157 45 160 50 170 50 Z");
-  font-family: var(--futura); font-weight: var(--w-bold); font-size: 13px;
-  line-height: 1.2; text-transform: uppercase;
-}
-.inner-tabs button.on { background: var(--inner); color: var(--ink); position: relative; z-index: 1; }
+/* 안쪽 서류철: 검색 + 메모 목록 */
 .search {
-  display: block; width: 220px; margin: -12px 0 22px auto;
+  display: block; width: 220px; margin: -8px 0 22px auto;
   border: 0; border-bottom: 1.5px solid var(--ink); outline: 0; background: transparent;
   padding: 4px 0; font-size: 13px; letter-spacing: .1em; color: var(--ink);
 }
 .search::placeholder { color: var(--ink-3); }
 .folder-body { --inner: color-mix(in srgb, var(--fc) 12%, var(--inner-base)); }
 .inner-folder {
+  flex: 1; min-height: 0; overflow-y: auto;
   background: var(--inner);
   color: var(--ink);
+  border-radius: 6px 6px 0 0;
   margin: 0 -18px;
-  padding: 32px 30px 44px;
-  min-height: 360px;
+  padding: 28px 30px 44px;
 }
 
 /* ───────── 메모 내지 ───────── */
@@ -498,8 +494,9 @@ select option { background: var(--paper); color: var(--ink); }
 .stk .t { font-family: var(--memo-font); fill: currentColor; stroke: none; }
 
 @media (max-width: 1000px) {
-  .workspace { grid-template-columns: 1fr; gap: 32px; }
-  .capture { position: static; }
+  .workspace { grid-template-columns: 1fr; gap: 32px; height: auto; }
+  .capture textarea { flex: none; min-height: calc(5 * 1.65em); }
+  .inner-folder { overflow: visible; min-height: 360px; }
 }
 
 /* ───────── 모바일 ───────── */
@@ -508,7 +505,7 @@ select option { background: var(--paper); color: var(--ink); }
   .masthead { grid-template-columns: 1fr auto; }
   .masthead-title { grid-column: 1 / -1; grid-row: 2; }
   .workspace { grid-template-columns: 1fr; gap: 32px; }
-  .capture { position: static; padding: 16px; }
+  .capture { padding: 16px; }
   .capture textarea { min-height: calc(4 * 1.65em); }
   .big { font-size: 36px; }
   :root { --step: 30px; }
@@ -516,11 +513,8 @@ select option { background: var(--paper); color: var(--ink); }
   .overview { grid-template-columns: auto auto; gap: 16px 28px; }
   .ov-side { grid-column: 1 / -1; }
   .search { width: 100%; margin-top: -8px; }
-  .inner-tabs button { width: 130px; font-size: 11.5px; padding: 4px 18px 0;
-    clip-path: path("M0 50 C10 50 13 45 15 36 L18 14 C20 5 25 0 35 0 L95 0 C105 0 110 5 112 14 L115 36 C117 45 120 50 130 50 Z"); }
   .folder-body { padding: 24px 16px 0; }
-  .inner-tabs, .inner-folder { margin: 0 -16px; }
-  .inner-tabs { padding: 0 8px; }
+  .inner-folder { margin: 0 -16px; }
   .inner-folder { padding: 24px 16px 32px; }
   .sheets { grid-template-columns: 1fr; }
   .editor { padding: 22px 16px 0; }

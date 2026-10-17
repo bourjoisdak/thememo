@@ -22,11 +22,16 @@ const CATEGORIES = [
 ];
 const ALL = { id: 'all', lines: ['All Files', '& Archive'], name: '전체' };
 for (const c of [ALL, ...CATEGORIES]) c.label = c.lines.join(' ');
-// 카테고리마다 고정 색(상자+글자)과 탭 곡선 모양
-const COLORS = ['c-chef', 'c-jordy', 'c-moss', 'c-apple'];
-const SHAPES = ['s-lean-l', 's-round', 's-lean-r', 's-soft'];
-CATEGORIES.forEach((c, i) => { c.color = COLORS[i % 4]; c.shape = SHAPES[i % 4]; });
-Object.assign(ALL, { color: 'c-main', shape: 's-soft' });
+// 서류철 = 메모 종류. 처음부터 모두 만들어 두고, 서류철마다 다른 색과 탭 곡선을 쓴다
+const FOLDERS = [
+  { id: 'all', lines: ['All Files', '& Archive'], name: '전체', color: 'c-main', shape: 's-soft' },
+  ...Object.entries(TYPES).map(([id, t], i) => ({
+    id, lines: t.lines, name: t.label,
+    color: ['c-jordy', 'c-chef', 'c-apple', 'c-moss'][i],
+    shape: ['s-lean-l', 's-round', 's-lean-r', 's-soft'][i],
+  })),
+];
+const folderOf = id => FOLDERS.find(f => f.id === id) || FOLDERS[0];
 const SLOTS = [0, 2, 1, 3]; // 겹친 탭이 서로 가리지 않도록 좌우로 엇갈림
 
 const FONTS = [
@@ -59,7 +64,7 @@ const PREF_KEY = 'memo-sorter:prefs:v4';
 // ───────── 상태 ─────────
 let memos = []; // 아래 유틸이 정의된 뒤 불러온다
 let prefs = Object.assign({ font: 'ryuttung', size: 20, theme: null }, load(PREF_KEY, {}));
-let view = { cat: 'all', type: 'all', q: '' };
+let view = { type: 'all', q: '' };
 let editingId = null;
 let quickOverride = { type: null, cat: null };
 let pendingStickers = [];
@@ -240,21 +245,19 @@ function parseQuick(text, type, cat) {
 const twoLines = lines => lines.map(esc).join('<br>');
 
 const tabInner = c => `<i class="sl l"></i><span class="lbl">${twoLines(c.lines)}</span><i class="sl r"></i>`;
-const memoCounts = () => {
+const typeCounts = () => {
   const counts = {};
-  for (const m of memos) counts[m.category] = (counts[m.category] || 0) + 1;
+  for (const m of memos) counts[m.type] = (counts[m.type] || 0) + 1;
   return counts;
 };
 
-// 선택 안 된 카테고리는 뒤에 겹쳐 쌓고, 선택된 카테고리는 맨 앞 서류철로
+// 선택 안 된 서류철은 뒤에 겹쳐 쌓고, 선택된 서류철은 맨 앞으로
 function renderStack() {
-  const counts = memoCounts();
-  const folders = [ALL, ...CATEGORIES].filter(c => c.id === 'all' || counts[c.id] || view.cat === c.id);
-  const back = folders.filter(c => c.id !== view.cat);
-  const fold = (c, i) => `<div class="fold ${c.color}" style="--slot:${SLOTS[i % 4]};--slot2:${i % 2}">
-      <button class="tab ${c.shape}" data-cat="${c.id}" title="${esc(c.name)}">${tabInner(c)}</button><div class="band"></div></div>`;
+  const back = FOLDERS.filter(f => f.id !== view.type);
+  const fold = (f, i) => `<div class="fold ${f.color}" style="--slot:${SLOTS[i % 4]};--slot2:${i % 2}">
+      <button class="tab ${f.shape}" data-type="${f.id}" title="${esc(f.name)}">${tabInner(f)}</button><div class="band"></div></div>`;
   $('#stack').innerHTML = back.map(fold).join('');
-  const i = back.length, el = $('#front'), front = catOf(view.cat);
+  const i = back.length, el = $('#front'), front = folderOf(view.type);
   el.className = `fold front ${front.color}`;
   el.style.setProperty('--slot', SLOTS[i % 4]);
   el.style.setProperty('--slot2', i % 2);
@@ -262,27 +265,21 @@ function renderStack() {
   $('#frontTab').innerHTML = tabInner(front);
 }
 
-function renderTypeTabs() {
-  const tabs = [['all', ['All', 'Types']], ...Object.entries(TYPES).map(([k, v]) => [k, v.lines])];
-  $('#typeTabs').innerHTML = tabs.map(([k, l]) =>
-    `<button data-type="${k}" class="${view.type === k ? 'on' : ''}">${twoLines(l)}</button>`).join('');
-}
-
-// All 서류철에서만 폴더 수·메모 수를 보여준다
+// All 서류철에서만 서류철 수·메모 수를 보여준다
 function renderOverview() {
   const box = $('#overview');
-  box.hidden = view.cat !== 'all';
+  box.hidden = view.type !== 'all';
   if (box.hidden) return;
-  const counts = memoCounts();
-  const used = CATEGORIES.filter(c => counts[c.id]);
+  const counts = typeCounts();
+  const folders = FOLDERS.slice(1);
   const last = memos.length ? Math.max(...memos.map(m => m.updated)) : null;
-  const mix = Object.entries(TYPES).map(([k, v]) => [v.label, memos.filter(m => m.type === k).length]).filter(([, n]) => n).map(([l, n]) => `${l} ${n}`).join(' · ');
+  const topics = CATEGORIES.map(c => [c.label, memos.filter(m => m.category === c.id).length]).filter(([, n]) => n).map(([l, n]) => `${l} ${n}`).join(' · ');
   box.innerHTML = `
-    <div class="ov-num"><b>${pad(used.length)}</b><span>FOLDERS</span></div>
+    <div class="ov-num"><b>${pad(folders.length)}</b><span>FOLDERS</span></div>
     <div class="ov-num"><b>${pad(memos.length)}</b><span>MEMOS</span></div>
     <div class="ov-side">
-      <p class="ov-types">${mix || 'NO MEMOS YET'}${last ? ` — LAST FILED ${fmtDate(last)}` : ''}</p>
-      <div class="ov-list">${used.map(c => `<button data-cat="${c.id}"><i class="dot ${c.color}"></i>${esc(c.label)}<span class="n">${pad(counts[c.id])}</span></button>`).join('')}</div>
+      <div class="ov-list">${folders.map(f => `<button data-type="${f.id}"><i class="dot ${f.color}"></i>${esc(f.lines.join(' '))}<span class="n">${pad(counts[f.id] || 0)}</span></button>`).join('')}</div>
+      <p class="ov-types">${topics || 'NO MEMOS YET'}${last ? ` — LAST FILED ${fmtDate(last)}` : ''}</p>
     </div>`;
 }
 
@@ -333,7 +330,6 @@ function monthCount(m) {
 function renderGrid() {
   const q = view.q.trim().toLowerCase();
   const list = memos
-    .filter(m => view.cat === 'all' || m.category === view.cat)
     .filter(m => view.type === 'all' || m.type === view.type)
     .filter(m => !q || [m.title, m.body, ...m.items.map(i => i.text)].join(' ').toLowerCase().includes(q))
     .sort((a, b) => b.updated - a.updated);
@@ -342,7 +338,7 @@ function renderGrid() {
   $('#empty').hidden = list.length > 0;
 }
 
-function render() { renderStack(); renderOverview(); renderTypeTabs(); renderGrid(); }
+function render() { renderStack(); renderOverview(); renderGrid(); }
 
 // ───────── 빠른 입력 ─────────
 function currentGuess() {
@@ -577,8 +573,7 @@ function bind() {
   dropZone($('#editor'), addEditorPhotos);
 
   // 필터
-  for (const id of ['#stack', '#overview']) $(id).addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { view.cat = b.dataset.cat; render(); } });
-  $('#typeTabs').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) { view.type = b.dataset.type; render(); } });
+  for (const id of ['#stack', '#overview']) $(id).addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) { view.type = b.dataset.type; render(); } });
   $('#search').addEventListener('input', e => { view.q = e.target.value; renderGrid(); });
 
   // 내지: 체크는 바로, 나머지는 편집기 열기
