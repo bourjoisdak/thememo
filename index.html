@@ -54,19 +54,12 @@
       <div class="fold front" id="front">
         <button class="tab on" id="frontTab"></button>
         <div class="folder-body">
-          <div class="cover">
-            <div class="cover-title">
-              <p class="mono" id="coverEdition"></p>
-              <h2 id="coverTitle"></h2>
-            </div>
-            <div class="info mono">
-              <div id="coverRows" class="rows"></div>
-              <div><span>SEARCH:</span><input id="search" type="search" placeholder="KEYWORD"></div>
-            </div>
-          </div>
-          <!-- 안쪽 서류철: 메모 형태 -->
+          <!-- All 서류철에서만: 폴더·메모 개수 -->
+          <div class="overview" id="overview" hidden></div>
+          <!-- 안쪽 서류철: 메모 형태 + 검색 -->
           <nav class="inner-tabs" id="typeTabs"></nav>
           <div class="inner-folder">
+            <input class="search" id="search" type="search" placeholder="SEARCH">
             <div class="sheets" id="grid"></div>
             <p class="empty hand" id="empty" hidden>이 서류철은 아직 비어 있어요.</p>
           </div>
