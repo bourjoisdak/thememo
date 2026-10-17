@@ -2,25 +2,28 @@
 
 // ───────── 설정값 ─────────
 const TYPES = {
-  note:  { label: 'Notes',   head: ['Note', 'Page'] },
-  todo:  { label: 'To-do',   head: ['To-do', 'List'] },
-  habit: { label: 'Habits',  head: ['Habit', 'Tracker'] },
-  diary: { label: 'Journal', head: ['Daily', 'Journal'] },
+  note:  { label: 'Notes',   lines: ['Quick', 'Notes'],   head: ['Note', 'Page'] },
+  todo:  { label: 'To-do',   lines: ['To-do', 'List'],    head: ['To-do', 'List'] },
+  habit: { label: 'Habits',  lines: ['Habit', 'Tracker'], head: ['Habit', 'Tracker'] },
+  diary: { label: 'Journal', lines: ['Daily', 'Journal'], head: ['Daily', 'Journal'] },
 };
 
 // 카테고리별 키워드. 많이 맞는 쪽으로 분류된다.
 const CATEGORIES = [
-  { id: 'work', label: 'Work',   name: '업무',     en: 'work\nmatters',   words: ['회의', '미팅', '보고', '보고서', '프로젝트', '메일', '거래처', '마감', '출근', '퇴근', '업무', '팀장', '클라이언트', '견적', '계약', '발표', '자료', '회사', '결재'] },
-  { id: 'study', label: 'Study',  name: '공부',     en: 'study\nnotes',    words: ['공부', '강의', '책', '독서', '시험', '영어', '단어', '복습', '예습', '수업', '과제', '자격증', '외우', '읽기', '스터디', '인강', '토익'] },
-  { id: 'money', label: 'Money',  name: '돈',       en: 'money\ntalks',    words: ['돈', '결제', '카드', '월세', '적금', '가계부', '지출', '송금', '세금', '이체', '통장', '대출', '환불', '월급', '용돈', '할부'] },
-  { id: 'health', label: 'Health', name: '건강',     en: 'body &\nhealth',  words: ['운동', '헬스', '러닝', '달리기', '병원', '약', '다이어트', '물', '수면', '잠', '스트레칭', '요가', '필라테스', '걷기', '만보', '식단', '영양제'] },
-  { id: 'shop', label: 'Shopping',   name: '쇼핑',     en: 'shopping\nlist',  words: ['사기', '살것', '살 것', '구매', '장보기', '장 보기', '주문', '쿠팡', '마트', '택배', '우유', '계란', '휴지', '세제', '배송'] },
-  { id: 'idea', label: 'Ideas',   name: '아이디어', en: 'idea\nbank',      words: ['아이디어', '생각났', '만들어', '만들기', '기획', '앱', '영감', '컨셉', '콘셉트', '구상', '해보면', '어떨까'] },
-  { id: 'people', label: 'People', name: '사람·약속', en: 'people &\nplans', words: ['약속', '생일', '만나', '친구', '엄마', '아빠', '가족', '선물', '연락', '전화', '모임', '결혼식', '저녁 먹'] },
-  { id: 'life', label: 'Daily',   name: '일상·기록', en: 'daily\nrecords',  words: ['오늘', '하루', '기분', '날씨', '산책', '카페', '영화', '여행', '맛집', '일기'] },
-  { id: 'etc', label: 'Others',    name: '기타',     en: 'odds &\nends',    words: [] },
+  { id: 'work', lines: ['Work &', 'Projects'], name: '업무', words: ['회의', '미팅', '보고', '보고서', '프로젝트', '메일', '거래처', '마감', '출근', '퇴근', '업무', '팀장', '클라이언트', '견적', '계약', '발표', '자료', '회사', '결재'] },
+  { id: 'study', lines: ['Study &', 'Learning'], name: '공부', words: ['공부', '강의', '책', '독서', '시험', '영어', '단어', '복습', '예습', '수업', '과제', '자격증', '외우', '읽기', '스터디', '인강', '토익'] },
+  { id: 'money', lines: ['Money &', 'Budgeting'], name: '돈', words: ['돈', '결제', '카드', '월세', '적금', '가계부', '지출', '송금', '세금', '이체', '통장', '대출', '환불', '월급', '용돈', '할부'] },
+  { id: 'health', lines: ['Health &', 'Routines'], name: '건강', words: ['운동', '헬스', '러닝', '달리기', '병원', '약', '다이어트', '물', '수면', '잠', '스트레칭', '요가', '필라테스', '걷기', '만보', '식단', '영양제'] },
+  { id: 'shop', lines: ['Shopping', '& Errands'], name: '쇼핑', words: ['사기', '살것', '살 것', '구매', '장보기', '장 보기', '주문', '쿠팡', '마트', '택배', '우유', '계란', '휴지', '세제', '배송'] },
+  { id: 'idea', lines: ['Ideas &', 'Inspiration'], name: '아이디어', words: ['아이디어', '생각났', '만들어', '만들기', '기획', '앱', '영감', '컨셉', '콘셉트', '구상', '해보면', '어떨까'] },
+  { id: 'people', lines: ['People &', 'Plans'], name: '사람·약속', words: ['약속', '생일', '만나', '친구', '엄마', '아빠', '가족', '선물', '연락', '전화', '모임', '결혼식', '저녁 먹'] },
+  { id: 'life', lines: ['Daily', 'Records'], name: '일상·기록', words: ['오늘', '하루', '기분', '날씨', '산책', '카페', '영화', '여행', '맛집', '일기'] },
+  { id: 'etc', lines: ['Odds &', 'Ends'], name: '기타', words: [] },
 ];
-const ALL = { id: 'all', label: 'All', name: '전체', en: 'behind\nthe memos' };
+const ALL = { id: 'all', lines: ['All Files', '& Archive'], name: '전체' };
+for (const c of [ALL, ...CATEGORIES]) c.label = c.lines.join(' ');
+const FOLDER_COLORS = ['c-citron', 'c-cornflower', 'c-travertine'];
+const SLOTS = [0, 2, 1, 3]; // 겹친 탭이 서로 가리지 않도록 좌우로 엇갈림
 
 const FONTS = [
   { id: 'yuntaeng',   name: '온글잎 윤탱체',  css: '"OwnglyphYuntaeng", "Gaegu", cursive' },
@@ -150,26 +153,35 @@ function parseQuick(text, type, cat) {
 }
 
 // ───────── 렌더: 서류철 탭 ─────────
-function renderFolderTabs() {
+const twoLines = lines => lines.map(esc).join('<br>');
+
+// 선택 안 된 카테고리는 뒤에 겹쳐 쌓고, 선택된 카테고리는 맨 앞 서류철로
+function renderStack() {
   const counts = {};
   for (const m of memos) counts[m.category] = (counts[m.category] || 0) + 1;
-  const tabs = [{ ...ALL, n: memos.length }, ...CATEGORIES.map(c => ({ ...c, n: counts[c.id] || 0 }))]
-    .filter(t => t.id === 'all' || t.n > 0 || view.cat === t.id);
-  $('#folderTabs').innerHTML = tabs.map(t =>
-    `<button data-cat="${t.id}" class="${view.cat === t.id ? 'on' : ''}">${esc(t.label)}<span class="n">${pad(t.n)}</span></button>`).join('');
+  const folders = [ALL, ...CATEGORIES].filter(c => c.id === 'all' || counts[c.id] || view.cat === c.id);
+  const back = folders.filter(c => c.id !== view.cat);
+  const fold = (c, i) => `<div class="fold ${FOLDER_COLORS[i % 3]}" style="--slot:${SLOTS[i % 4]};--slot2:${i % 2}">
+      <button class="tab" data-cat="${c.id}" title="${esc(c.name)}">${twoLines(c.lines)}</button><div class="band"></div></div>`;
+  $('#stack').innerHTML = back.map(fold).join('');
+  const i = back.length, el = $('#front');
+  el.className = `fold front ${FOLDER_COLORS[i % 3]}`;
+  el.style.setProperty('--slot', SLOTS[i % 4]);
+  el.style.setProperty('--slot2', i % 2);
+  $('#frontTab').innerHTML = twoLines(catOf(view.cat).lines);
 }
 
 function renderTypeTabs() {
-  const tabs = [['all', 'All Types'], ...Object.entries(TYPES).map(([k, v]) => [k, v.label])];
+  const tabs = [['all', ['All', 'Types']], ...Object.entries(TYPES).map(([k, v]) => [k, v.lines])];
   $('#typeTabs').innerHTML = tabs.map(([k, l]) =>
-    `<button data-type="${k}" class="${view.type === k ? 'on' : ''}">${esc(l)}</button>`).join('');
+    `<button data-type="${k}" class="${view.type === k ? 'on' : ''}">${twoLines(l)}</button>`).join('');
 }
 
 function renderCover(list) {
   const c = catOf(view.cat);
   const idx = view.cat === 'all' ? 0 : CATEGORIES.indexOf(c) + 1;
-  $('#coverEdition').innerHTML = `FOLDER ${pad(idx)}:<br>${esc(c.label)}${view.type === 'all' ? '' : ' / ' + TYPES[view.type].label}`;
-  $('#coverTitle').innerHTML = esc(c.en).replace('\n', '<br>');
+  $('#coverEdition').innerHTML = `FOLDER ${pad(idx)}:<br>${view.type === 'all' ? 'ALL TYPES' : TYPES[view.type].lines.join(' ').toUpperCase()}`;
+  $('#coverTitle').innerHTML = twoLines(c.lines);
   const last = list.length ? Math.max(...list.map(m => m.updated)) : null;
   const mix = Object.entries(TYPES).map(([k, v]) => [v.label, list.filter(m => m.type === k).length]).filter(([, n]) => n).map(([l, n]) => `${l} ${n}`).join(' · ');
   $('#coverRows').innerHTML = `
@@ -233,7 +245,7 @@ function renderGrid() {
   $('#empty').hidden = list.length > 0;
 }
 
-function render() { renderFolderTabs(); renderTypeTabs(); renderGrid(); }
+function render() { renderStack(); renderTypeTabs(); renderGrid(); }
 
 // ───────── 빠른 입력 ─────────
 function currentGuess() {
@@ -442,7 +454,7 @@ function bind() {
   });
 
   // 필터
-  $('#folderTabs').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { view.cat = b.dataset.cat; render(); } });
+  $('#stack').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { view.cat = b.dataset.cat; render(); } });
   $('#typeTabs').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) { view.type = b.dataset.type; render(); } });
   $('#search').addEventListener('input', e => { view.q = e.target.value; renderGrid(); });
 

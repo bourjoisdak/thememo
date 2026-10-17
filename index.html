@@ -48,8 +48,11 @@
 
     <!-- 서류함 -->
     <section class="cabinet">
-      <nav class="folder-tabs" id="folderTabs"></nav>
-      <div class="folder">
+      <!-- 뒤쪽 서류철: 계단처럼 겹쳐 쌓인 카테고리 -->
+      <nav class="stack" id="stack"></nav>
+      <!-- 맨 앞 서류철: 선택된 카테고리 -->
+      <div class="fold front" id="front">
+        <button class="tab on" id="frontTab"></button>
         <div class="folder-body">
           <div class="cover">
             <div class="cover-title">
@@ -62,7 +65,7 @@
             </div>
           </div>
           <!-- 안쪽 서류철: 메모 형태 -->
-          <nav class="folder-tabs inner-tabs" id="typeTabs"></nav>
+          <nav class="inner-tabs" id="typeTabs"></nav>
           <div class="inner-folder">
             <div class="sheets" id="grid"></div>
             <p class="empty hand" id="empty" hidden>이 서류철은 아직 비어 있어요.</p>
