@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/auto-push.sh\"",
+            "timeout": 60,
+            "statusMessage": "자동 커밋·푸시 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
